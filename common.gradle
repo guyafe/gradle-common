@@ -1,0 +1,11 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+
+repositories {
+  mavenCentral()
+}
+
+java {
+  withSourcesJar()
+  withJavadocJar()
+}
