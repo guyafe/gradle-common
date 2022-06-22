@@ -3,7 +3,7 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    //Check for the latest version here: http://plugins.gradle.org/plugin/com.jfrog.artifactory
+    //Check for the latest patch here: http://plugins.gradle.org/plugin/com.jfrog.artifactory
     classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4+"
   }
 }
@@ -59,8 +59,25 @@ publishing {
   }
 }
 
+def getPatchValue = {
+  String mjMnFileName = "./patch";
+  String majorMinor = new File(mjMnFileName).text.trim();
+  return majorMinor;
+}
+
+ext.resolveVersion = majorMinor -> {
+  println("Current major and minor is " + majorMinor);
+  String patch = getPatchValue();
+  println("Current patch is: " + patch);
+  String branch = getCurrentBranch();
+  println("Current branch is: " + branch);
+  String suffix = branch == "main" ? patch : branch + "-SNAPSHOT";
+  String fullVersion = majorMinor + "." + suffix;
+  println("Resolving version to: " + fullVersion);
+  return fullVersion;
+}
+
 ext.getCurrentBranch  = {
-  def gitBranch = 'git branch --show-current'.execute().text.trim();
-  print("Working branch is " + gitBranch);
+  String gitBranch = 'git branch --show-current'.execute().text.trim();
   return gitBranch;
 }
