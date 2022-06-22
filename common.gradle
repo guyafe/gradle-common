@@ -65,6 +65,11 @@ def getPatchValue = {
   return majorMinor;
 }
 
+def getCurrentBranch  = {
+  String gitBranch = 'git branch --show-current'.execute().text.trim();
+  return gitBranch;
+}
+
 ext.resolveVersion = majorMinor -> {
   println("Current major and minor is " + majorMinor);
   String patch = getPatchValue();
@@ -77,7 +82,18 @@ ext.resolveVersion = majorMinor -> {
   return fullVersion;
 }
 
-ext.getCurrentBranch  = {
-  String gitBranch = 'git branch --show-current'.execute().text.trim();
-  return gitBranch;
+def incrementPatchIfNeeded = {
+  String branch = getCurrentBranch();
+  if(branch == "main"){
+    int patch = Integer.parseInt(getPatchValue());
+    patch++;
+    File patchFile = new File("patch");
+    patchFile.write(patch);
+  }
+}
+
+tasks.register('publishToArtifactoryAndIncrementPatch'){
+  dependsOn assemble;
+  dependsOn artifactoryPublish;
+  incrementPatchIfNeeded();
 }
