@@ -55,7 +55,12 @@ publishing {
     mavenJava(MavenPublication) {
       from components.java
       artifactId = rootProject.name
-      // you may have to assign version here
     }
   }
+}
+
+ext.getCurrentBranch  = {
+  def gitBranch = 'git branch --show-current'.execute().text.trim();
+  print("Working branch is " + gitBranch);
+  return gitBranch;
 }
