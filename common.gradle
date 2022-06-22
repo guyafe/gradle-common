@@ -60,45 +60,111 @@ publishing {
 }
 
 def getPatchValue = {
-  String mjMnFileName = "./patch";
-  String majorMinor = new File(mjMnFileName).text.trim();
-  return majorMinor;
+  String patchFileName = "./patch"
+  String majorMinor = new File(patchFileName).text.trim()
+  return majorMinor
 }
 
 def getCurrentBranch = {
-  String gitBranch = 'git branch --show-current'.execute().text.trim();
-  return gitBranch;
+  String gitBranch = 'git branch --show-current'.execute().text.trim()
+  return gitBranch
 }
 
 ext.resolveVersion = majorMinor -> {
-  println("Current major and minor is " + majorMinor);
-  String patch = getPatchValue();
-  println("Current patch is: " + patch);
-  String branch = getCurrentBranch();
-  println("Current branch is: " + branch);
-  String suffix = branch == "main" ? patch : branch + "-SNAPSHOT";
-  String fullVersion = majorMinor + "." + suffix;
-  println("Resolving version to: " + fullVersion);
-  return fullVersion;
+  println("Current major and minor is " + majorMinor)
+  String patch = getPatchValue()
+  println("Current patch is: " + patch)
+  String branch = getCurrentBranch()
+  println("Current branch is: " + branch)
+  String suffix = branch == "main" ? patch : branch + "-SNAPSHOT"
+  String fullVersion = majorMinor + "." + suffix
+  println("Resolving version to: " + fullVersion)
+  return fullVersion
 }
 
 def incrementPatchIfNeeded = {
-  String branch = getCurrentBranch();
+  String branch = getCurrentBranch()
   if (branch == "main") {
-    int patch = Integer.parseInt(getPatchValue());
-    patch++;
-    File patchFile = new File("patch");
-    patchFile.write("" + patch);
-    String commitMessage = "Increment-Patch-${patch}";
-    String gitCommand = "git commit ./patch -m \"${commitMessage}\"";
-    println("Commiting patch file...");
-    println(gitCommand);
-    gitCommand.execute();
+    int patch = Integer.parseInt(getPatchValue())
+    patch++
+    File patchFile = new File("patch")
+    patchFile.write("" + patch)
+    String commitMessage = "Increment-Patch-${patch}"
+    String gitCommand = "git commit ./patch -m \"${commitMessage}\""
+    println("Commiting patch file...")
+    println(gitCommand)
+    gitCommand.execute()
   }
 }
 
 tasks.register('publishToArtifactoryAndIncrementPatch') {
-  dependsOn assemble;
-  dependsOn artifactoryPublish;
-  incrementPatchIfNeeded();
+  dependsOn assemble
+  dependsOn artifactoryPublish
+  incrementPatchIfNeeded()
+}
+
+def getBase64EncodedCredentials() {
+  def s = "${artifactory_user}" + ":" + "${artifactory_password}"
+  return s.bytes.encodeBase64().toString()
+}
+
+def urlExists = (String repositoryUrl) -> {
+
+  try {
+    def connection = (HttpURLConnection) new URL(repositoryUrl).openConnection()
+
+    connection.setRequestProperty("Authorization", "Basic " + getBase64EncodedCredentials())
+    connection.setConnectTimeout(10000)
+    connection.setReadTimeout(10000)
+    connection.setRequestMethod("HEAD")
+
+    def responseCode = connection.getResponseCode()
+
+    if (responseCode == 401) {
+      throw new RuntimeException("Unauthorized MavenUser user. Please provide valid username and password.")
+    }
+
+    return (200 == responseCode)
+
+  } catch (IOException ignored) {
+    println(ignored)
+    return false
+  }
+}
+
+def artifactExist = (groupName, artifactName, version) -> {
+  def pomFileName = "${artifactName}-${version}.pom"
+  def artifactPath = "${groupName.replace(".", "/")}/${artifactName}/${version}/${pomFileName}"
+  def repositoryUrl = "${artifactory_contextUrl}/site-building-gradle-dev/${artifactPath}"
+  println("Searching for artifact: " + repositoryUrl)
+  if (urlExists(repositoryUrl)) {
+    println("# Existing artifact found")
+    return true
+  } else {
+    println("# No existing artifact found. Preceding to publish")
+    return false
+  }
+}
+
+ext.resolveDependencyVersion = (groupName, artifactName, majorMinor) -> {
+  println("Current major and minor is " + majorMinor)
+  String branch = getCurrentBranch()
+  println("Current branch is: " + branch)
+  String suffix
+  if(branch == "main"){
+    suffix = "+"
+  } else {
+    if(artifactExist(groupName, artifactName, majorMinor + "." +  branch + "-SNAPSHOT")){
+      suffix = branch + "-SNAPSHOT"
+    } else {
+      suffix = "+"
+    }
+  }
+  String fullDependency = groupName + ":" + artifactName + ":" + majorMinor + "." + suffix
+  println("Resolving dependency version to: " + fullDependency)
+  return fullDependency
+}
+
+test {
+  useJUnitPlatform()
 }
