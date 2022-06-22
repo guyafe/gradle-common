@@ -65,7 +65,7 @@ def getPatchValue = {
   return majorMinor;
 }
 
-def getCurrentBranch  = {
+def getCurrentBranch = {
   String gitBranch = 'git branch --show-current'.execute().text.trim();
   return gitBranch;
 }
@@ -84,15 +84,20 @@ ext.resolveVersion = majorMinor -> {
 
 def incrementPatchIfNeeded = {
   String branch = getCurrentBranch();
-  if(branch == "main"){
+  if (branch == "main") {
     int patch = Integer.parseInt(getPatchValue());
     patch++;
     File patchFile = new File("patch");
     patchFile.write("" + patch);
+    String commitMessage = "Increment-Patch-${patch}";
+    String gitCommand = "git commit ./patch -m \"${commitMessage}\"";
+    println("Commiting patch file...");
+    println(gitCommand);
+    gitCommand.execute();
   }
 }
 
-tasks.register('publishToArtifactoryAndIncrementPatch'){
+tasks.register('publishToArtifactoryAndIncrementPatch') {
   dependsOn assemble;
   dependsOn artifactoryPublish;
   incrementPatchIfNeeded();
