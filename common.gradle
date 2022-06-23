@@ -61,8 +61,14 @@ publishing {
 
 def getPatchValue = {
   String patchFileName = "./patch"
-  String majorMinor = new File(patchFileName).text.trim()
-  return majorMinor
+  String patch = new File(patchFileName).text.trim()
+  return patch
+}
+
+def getVersionValue = {
+  String versionFileName = "./version"
+  String version = new File(versionFileName).text.trim()
+  return version
 }
 
 def getCurrentBranch = {
@@ -70,7 +76,8 @@ def getCurrentBranch = {
   return gitBranch
 }
 
-ext.resolveVersion = majorMinor -> {
+ext.resolveVersion = {
+  String majorMinor  = getVersionValue();
   println("Current major and minor is " + majorMinor)
   String patch = getPatchValue()
   println("Current patch is: " + patch)
@@ -97,10 +104,34 @@ def incrementPatchIfNeeded = {
   }
 }
 
+def incrementMinor = {
+  String version = getVersionValue()
+  String[] majorAndMinor = version.split("\\.")
+  int minor = Integer.parseInt(majorAndMinor[1])
+  println("minor is: " + minor)
+  minor++;
+  println("new minor is: " + minor)
+  String newVersion = majorAndMinor[0] + "." + minor;
+  println ("New version is: " + newVersion)
+  File patchFile = new File("patch")
+  patchFile.write("" + 0)
+  File versionFile = new File("version");
+  versionFile.write(newVersion)
+  String commitMessage = "Increment-Version-${newVersion}"
+  String gitCommand = "git commit ./patch ./version -m \"${commitMessage}\""
+  println("Commiting patch file...")
+  println(gitCommand)
+  gitCommand.execute()
+}
+
 tasks.register('publishToArtifactoryAndIncrementPatch') {
   dependsOn assemble
   dependsOn artifactoryPublish
   incrementPatchIfNeeded()
+}
+
+tasks.register('incrementMinor') {
+  incrementMinor()
 }
 
 def getBase64EncodedCredentials() {
