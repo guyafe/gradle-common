@@ -165,6 +165,12 @@ ext.resolveDependencyVersion = (groupName, artifactName, majorMinor) -> {
   return fullDependency
 }
 
+configurations.all {
+  // Check for updates every build
+  resolutionStrategy.cacheDynamicVersionsFor 1, 'seconds'
+  resolutionStrategy.cacheChangingModulesFor 1, 'seconds'
+}
+
 test {
   useJUnitPlatform()
 }
