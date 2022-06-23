@@ -124,6 +124,26 @@ def incrementMinor = {
   gitCommand.execute()
 }
 
+def incrementMajor = {
+  String version = getVersionValue()
+  String[] majorAndMinor = version.split("\\.")
+  int major = Integer.parseInt(majorAndMinor[0])
+  println("major is: " + major)
+  major++;
+  println("new major is: " + major)
+  String newVersion = major + ".0";
+  println ("New version is: " + newVersion)
+  File patchFile = new File("patch")
+  patchFile.write("" + 0)
+  File versionFile = new File("version");
+  versionFile.write(newVersion)
+  String commitMessage = "Increment-Version-${newVersion}"
+  String gitCommand = "git commit ./patch ./version -m \"${commitMessage}\""
+  println("Commiting patch file...")
+  println(gitCommand)
+  gitCommand.execute()
+}
+
 tasks.register('publishToArtifactoryAndIncrementPatch') {
   dependsOn assemble
   dependsOn artifactoryPublish
@@ -132,6 +152,10 @@ tasks.register('publishToArtifactoryAndIncrementPatch') {
 
 tasks.register('incrementMinor') {
   incrementMinor()
+}
+
+tasks.register('incrementMajor') {
+  incrementMajor()
 }
 
 def getBase64EncodedCredentials() {
