@@ -144,18 +144,24 @@ def incrementMajor = {
   gitCommand.execute()
 }
 
-tasks.register('publishToArtifactoryAndIncrementPatch') {
+task publishToArtifactoryAndIncrementPatch {
   dependsOn assemble
   dependsOn artifactoryPublish
-  incrementPatchIfNeeded()
+  doLast {
+    incrementPatchIfNeeded()
+  }
 }
 
-tasks.register('incrementMinor') {
-  incrementMinor()
+task  incrementMinorTask {
+  doLast {
+    incrementMinor()
+  }
 }
 
-tasks.register('incrementMajor') {
-  incrementMajor()
+task incrementMajorTask {
+  doLast {
+    incrementMajor()
+  }
 }
 
 def getBase64EncodedCredentials() {
